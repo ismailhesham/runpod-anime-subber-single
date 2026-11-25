@@ -1,0 +1,10 @@
+subber_secrets.json
+*.secrets.json
+.env
+__pycache__/
+subber_settings.json
+telegram_state.json
+*.session
+rclone.conf
+.ui_login
+translator_style_celestial.json
