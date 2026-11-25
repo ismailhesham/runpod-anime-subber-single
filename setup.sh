@@ -8,7 +8,10 @@ if ! command -v google-chrome >/dev/null 2>&1; then wget -q -O /tmp/chrome.deb h
 mkdir -p /workspace/models /workspace/glossaries /workspace/outputs /workspace/raw_episodes /root/.vnc
 mkdir -p /usr/local/share/fonts/anime_subber && cp -f fonts/* /usr/local/share/fonts/anime_subber/ && fc-cache -f
 ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
-x11vnc -storepasswd 123456 /root/.vnc/passwd >/dev/null
+VNCPASS_FILE=/workspace/.vnc_login
+if [ ! -s "$VNCPASS_FILE" ]; then (umask 077; python3 -c "import secrets;print(secrets.token_urlsafe(6))" > "$VNCPASS_FILE"); fi
+x11vnc -storepasswd "$(cat "$VNCPASS_FILE")" /root/.vnc/passwd >/dev/null
+echo "Desktop (noVNC, port 6080) password: $(cat "$VNCPASS_FILE")  (saved in $VNCPASS_FILE)"
 (nohup Xvfb :99 -screen 0 1280x800x24 >/dev/null 2>&1 < /dev/null &)
 sleep 1
 (DISPLAY=:99 nohup fluxbox >/dev/null 2>&1 < /dev/null &)
