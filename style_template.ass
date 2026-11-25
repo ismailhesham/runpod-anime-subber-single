@@ -1,0 +1,24 @@
+[Script Info]
+; Editable Arabic Anime Fansub Style Template (Aegisub Compatible)
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+PlayResX: 1920
+PlayResY: 1080
+YCbCr Matrix: TV.709
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Main,Bahij Nassim,100,&H00FFFFFF,&H0000FFFF,&H00000000,&H7F000000,-1,0,0,0,90,100,0,0,1,2.5,1,2,30,30,47,1
+Style: Top,Bahij Nassim,100,&H00FFFFFF,&H0000FFFF,&H00000000,&H7F000000,-1,0,0,0,90,100,0,0,1,2.5,1,8,30,30,47,1
+Style: Narrator,Bahij Nassim,100,&H00FFFFFF,&H0000FFFF,&H00112F4A,&H7F000000,-1,0,0,0,90,100,0,0,1,2.5,1,2,30,30,60,1
+Style: Narrator - Top,Bahij Nassim,100,&H00FFFFFF,&H0000FFFF,&H00112F4A,&H7F000000,-1,0,0,0,90,100,0,0,1,2.5,1,8,30,30,30,1
+Style: Signs,Bahij Mitra,75,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,5,0,0,0,1
+Style: Rights,Hayah,80,&H00FFFFFF,&H00FBFBFB,&H00000000,&H00322F2A,0,0,0,0,100,100,0,0,1,0.5,0,9,20,20,20,1
+Style: OP-Ara,Hayah,110,&H00FFFFFF,&H00000000,&H00000000,&H00FFFFFF,0,0,0,0,100,100,0,0,1,2,0,2,0,0,20,1
+Style: OP-Rom,Sovba Regular,80,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00FFFFFF,0,0,0,0,100,100,0,0,1,2,0,8,0,0,30,1
+Style: ED-Ara,Hayah,110,&H00E2F4F3,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,2,0,0,35,1
+Style: ED-Rom,Sovba Regular,80,&H00E2F4F3,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,8,0,0,30,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
