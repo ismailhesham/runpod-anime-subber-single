@@ -1,0 +1,16 @@
+{
+  "series": "اسم الأنمي هنا",
+  "names": {
+    "Ichigo Kurosaki": "إيتشيچو كوروساكي",
+    "Rukia Kuchiki": "روكيا كوتشيكي"
+  },
+  "transliterate": {
+    "Bankai": "البانكاي",
+    "Zanpakuto": "الزانباكتو"
+  },
+  "translate": {
+    "Soul Society": "مجتمع الأرواح"
+  },
+  "keep_honorifics": true,
+  "_README": "انسخ هذا الملف إلى /workspace/glossaries/<اسم_الأنمي>.json (بحروف صغيرة و _ بدل المسافات) وعدّل القيم. الأداة تقرأه تلقائياً وتضيف له ما تتعلمه من كل حلقة. احذف مفتاح _README في نسختك."
+}
