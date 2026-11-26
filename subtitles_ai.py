@@ -576,7 +576,7 @@ def _call_llm_json(
     base_url: str,
     log_cb: Optional[Callable[[str], None]] = None,
 ) -> Dict:
-    """Unified LLM JSON caller with DeepSeek primary -> deepseek-v4-pro fallback chain."""
+    """Unified LLM JSON caller with DeepSeek primary -> deepseek-chat fallback chain."""
     prov = (provider or "deepseek").lower()
     key = api_key.strip()
     if not key and "local" not in prov:
@@ -587,7 +587,7 @@ def _call_llm_json(
     elif "deepseek" in prov or "deepseek" in (base_url or "").lower() or "deepseek" in (model_name or "").lower():
         primary = model_name.strip() or "deepseek-flash"
         candidates = []
-        for m in (primary, "deepseek-v4-pro", "deepseek-chat"):
+        for m in (primary, "deepseek-chat"):
             if m and m not in candidates:
                 candidates.append(m)
         if not base_url.strip():
@@ -815,67 +815,6 @@ def load_or_extract_series_glossary(
             log_cb(f"⚠️ تم تخطي تحديث القاموس التلقائي: {exc}")
 
     return existing
-
-
-def translate_detected_signs(
-    signs: List[Dict],
-    entries: List[SubEntry],
-    series_name: str,
-    glossary: Optional[Dict],
-    provider: str,
-    api_key: str,
-    model_name: str,
-    base_url: str,
-    log_cb: Optional[Callable[[str], None]] = None,
-) -> List[Dict]:
-    """Translate OCR-detected Japanese screen signs with scene dialogue context."""
-    if not signs:
-        return signs
-
-    payload_items = []
-    for sg in signs:
-        st_ms, en_ms = sg["start_ms"], sg["end_ms"]
-        nearby = [
-            e.plain_text
-            for e in entries
-            if abs(e.start_ms - st_ms) <= 6000 and not e.keep_untranslated
-        ][:4]
-        payload_items.append(
-            {
-                "id": str(sg["id"]),
-                "jp_sign": sg["jp_text"],
-                "nearby_dialogue": nearby,
-            }
-        )
-
-    glossary_hint = json.dumps(glossary or {}, ensure_ascii=False) if glossary else "{}"
-    sys_p = f"""أنت مختص محاكاة وتنضيد لافتات أنمي (Typesetter) لفريق Celestial-Dragons.
-ترجم اللافتات اليابانية الملتقطة من الشاشة للأنمي «{series_name or 'عام'}» إلى عناوين عربية فصيحة ومكثفة جداً (كلمة إلى 4 كلمات كحد أقصى لتناسب مساحة اللافتة الممسوحة على الشاشة بدون أي علامات ترقيم زائدة).
-استعن بالحوار المحيط والقاموس المرفق لفهم السياق بدقة:
-{glossary_hint}
-أرجع كائن JSON فقط يربط كل "id" بالنص العربي الموجز للافتة."""
-
-    try:
-        if log_cb:
-            log_cb(f"🎌 ترجمة {len(signs)} لافتة يابانية مكتشفة عبر الذكاء الاصطناعي...")
-        res = _call_llm_json(
-            sys_p,
-            json.dumps(payload_items, ensure_ascii=False),
-            provider=provider,
-            api_key=api_key,
-            model_name=model_name,
-            base_url=base_url,
-            log_cb=log_cb,
-        )
-        for sg in signs:
-            ar_val = str(res.get(str(sg["id"]), "") or "").strip()
-            if ar_val:
-                sg["ar_text"] = ar_val
-    except Exception as exc:
-        if log_cb:
-            log_cb(f"⚠️ تعذر ترجمة بعض اللافتات تلقائياً (يمكنك كتابتها في جدول المراجعة): {exc}")
-
-    return signs
 
 
 _MAX_LINE_CHARS = 38  # عرف الفانسب: ~40 حرفاً عربياً للسطر المرئي الواحد (خط Bahij Nassim عريض)
@@ -1148,17 +1087,6 @@ def _ms_to_ass_time(ms: int) -> str:
     return f"{ms // 3600000}:{(ms // 60000) % 60:02d}:{(ms // 1000) % 60:02d}.{(ms // 10) % 100:02d}"
 
 
-def _hex_to_ass_bgr(hex_color: str, default: str = "&HFFFFFF&") -> str:
-    c = (hex_color or "").strip()
-    if c.upper().startswith("&H"):
-        return c if c.endswith("&") else f"{c}&"
-    c = c.lstrip("#")
-    if len(c) == 6 and re.fullmatch(r"[0-9A-Fa-f]{6}", c):
-        rr, gg, bb = c[0:2].upper(), c[2:4].upper(), c[4:6].upper()
-        return f"&H{bb}{gg}{rr}&"
-    return default
-
-
 def _remap_ass_tags_to_resolution(tags: str, src_w: int, src_h: int, dst_w: int, dst_h: int) -> str:
     if not tags:
         return ""
@@ -1250,7 +1178,6 @@ def write_responsive_ass(
     target_w: int = 1920,
     target_h: int = 1080,
     style_preset: str = "bleach_style",
-    approved_visual_signs: Optional[List[Dict]] = None,
     credits: Optional[Dict[str, str]] = None,
     wrap_mode: str = "sequential",
     soften_exclaim: bool = True,
@@ -1264,13 +1191,7 @@ def write_responsive_ass(
     bottom_zone_pct = float(geom.get("bottom_collision_y_pct", 60.0))
     mv_overrides = preset_cfg.get("event_margin_v_overrides_h_pct") or {}
 
-    visual_signs = [s for s in (approved_visual_signs or []) if s.get("enabled", True) and str(s.get("ar_text", "")).strip()]
-
     bottom_sign_intervals: List[Tuple[int, int]] = []
-    for vs in visual_signs:
-        if float(vs.get("cy_pct", 50.0)) >= bottom_zone_pct:
-            bottom_sign_intervals.append((int(vs["start_ms"]), int(vs["end_ms"])))
-
     for ev in entries:
         if ev.target_style == "Signs":
             yp = _extract_sign_y_pct(ev)
@@ -1281,18 +1202,6 @@ def write_responsive_ass(
     active_bottom_dialogue_end = -1
 
     for entry in entries:
-        if entry.target_style == "Signs" and visual_signs:
-            dup = False
-            for vs in visual_signs:
-                ov = min(entry.end_ms, int(vs["end_ms"])) - max(entry.start_ms, int(vs["start_ms"]))
-                if ov >= 250:
-                    yp = _extract_sign_y_pct(entry)
-                    if yp is None or abs(yp - float(vs.get("cy_pct", 50.0))) <= 18.0:
-                        dup = True
-                        break
-            if dup:
-                continue
-
         raw_final = entry.plain_text if entry.keep_untranslated else translations.get(entry.index, entry.plain_text)
         if preserve_wording:
             seq_segs = None
@@ -1353,7 +1262,6 @@ def write_responsive_ass(
                 entry.preserved_tags, entry.src_playres_x, entry.src_playres_y, target_w, target_h
             )
             blur_px = max(1.0, round(target_h * 0.0018, 1))
-            bord_px = max(1.0, round(target_h * 0.0015, 1))
             # اللافتات في الستايل الجديد بخط Arial (بدون إطار)؛ AFSANEH لعناوين الحلقات فقط
             if "title" in entry.actor.lower() or "episode" in entry.actor.lower():
                 f_tag = f"\\fnAFSANEH_v2 KHWF\\blur{blur_px}"
@@ -1391,41 +1299,6 @@ def write_responsive_ass(
                 f"Dialogue: {layer},{_ms_to_ass_time(entry.start_ms)},{_ms_to_ass_time(entry.end_ms)},"
                 f"{eff_style},{entry.actor},0,0,{ev_mv},,{formatted}"
             )
-
-    for vs in visual_signs:
-        ar_sign = str(vs["ar_text"]).strip()
-        cx = round(target_w * float(vs.get("cx_pct", 50.0)) / 100.0, 1)
-        cy = round(target_h * float(vs.get("cy_pct", 50.0)) / 100.0, 1)
-        box_h_px = max(22.0, target_h * float(vs.get("h_pct", 6.0)) / 100.0)
-        box_w_px = max(60.0, target_w * float(vs.get("w_pct", 25.0)) / 100.0)
-
-        est_fs_by_h = box_h_px * 1.08
-        est_fs_by_w = (box_w_px / max(3.5, len(ar_sign) * 0.52)) * 1.15
-        sign_fs = round(max(target_h * 0.032, min(est_fs_by_h, est_fs_by_w, target_h * 0.145)), 1)
-
-        c_fill = _hex_to_ass_bgr(vs.get("fill_hex", "#FFFFFF"), "&HFFFFFF&")
-        c_out = _hex_to_ass_bgr(vs.get("outline_hex", "#000000"), "&H000000&")
-        bord_px = round(max(1.2, sign_fs * 0.045), 2)
-        blur_px = round(max(0.8, target_h * 0.0014), 2)
-        fad_tag = "\\fad(180,180)" if vs.get("has_fade", False) else ""
-        ang = float(vs.get("angle_deg", 0.0) or 0.0)
-        frz_tag = f"\\frz{-ang:.1f}" if abs(ang) >= 2.0 else ""
-
-        if float(vs.get("h_pct", 6.0)) >= 8.0:
-            sign_font = "AFSANEH_v2 KHWF"
-        elif any(k in ar_sign for k in ("مملكة", "قصر", "قرية", "مدينة", "غابة", "قاعدة", "طابق")):
-            sign_font = "BKR Shahd Extra Bold"
-        else:
-            sign_font = "BKR Shahd Extra Bold" if len(ar_sign) <= 14 else _safe_font("SC_REHAN")
-
-        vs_txt = (
-            f"{{\\an5\\pos({cx},{cy})\\fn{sign_font}\\fs{sign_fs}"
-            f"\\c{c_fill}\\3c{c_out}\\bord{bord_px}\\blur{blur_px}{frz_tag}{fad_tag}}}{ar_sign}"
-        )
-        lines.append(
-            f"Dialogue: 1,{_ms_to_ass_time(int(vs['start_ms']))},{_ms_to_ass_time(int(vs['end_ms']))},"
-            f"Signs,VisualInpaint,0,0,0,,{vs_txt}"
-        )
 
     if credits:
         slots = [

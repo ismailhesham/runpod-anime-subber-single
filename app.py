@@ -483,7 +483,7 @@ def render_multi_hud(
 def load_settings() -> Dict:
     defaults = {
         "provider": "DeepSeek API (موصى به)",
-        "llm_model": "deepseek-v4-pro",
+        "llm_model": "deepseek-flash",
         "api_key": os.environ.get("DEEPSEEK_API_KEY", os.environ.get("GEMINI_API_KEY", "")),
         "base_url": "https://api.deepseek.com",
         "style_preset": "bleach_style",
@@ -512,6 +512,9 @@ def load_settings() -> Dict:
             defaults.update({k: v for k, v in saved.items() if v is not None})
         except Exception:
             pass
+    # ترحيل إجباري: ديب سيك فلاش بدل البرو (توفير استهلاك التوكنز)
+    if defaults.get("llm_model") == "deepseek-v4-pro":
+        defaults["llm_model"] = "deepseek-flash"
     return defaults
 
 
@@ -590,7 +593,7 @@ def step_save_manual_sub(series_name_val: str, ep_num, file_obj) -> str:
 
 def _on_provider_change(prov: str) -> Tuple[Any, Any]:
     if "DeepSeek" in prov:
-        return gr.update(value="deepseek-v4-pro"), gr.update(value="https://api.deepseek.com")
+        return gr.update(value="deepseek-flash"), gr.update(value="https://api.deepseek.com")
     if "Gemini" in prov:
         return gr.update(value="gemini-3.8-flash"), gr.update(value="")
     return gr.update(value="deepseek-flash"), gr.update(value="http://localhost:8000/v1")
