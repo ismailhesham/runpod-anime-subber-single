@@ -492,7 +492,7 @@ def load_settings() -> Dict:
         "dood_api_key": os.environ.get("DOODSTREAM_API_KEY", ""),
         "gdrive_remote": "gdrive",
         "gdrive_folder": "Runpod_Anime",
-        "codec": "hevc_nvenc",
+        "codec": "h264_nvenc",
         "preset": "p7",
         "x265_preset": "slow",
         "cq": 27,
@@ -515,6 +515,8 @@ def load_settings() -> Dict:
     # ترحيل إجباري: ديب سيك فلاش بدل البرو (توفير استهلاك التوكنز)
     if defaults.get("llm_model") == "deepseek-v4-pro":
         defaults["llm_model"] = "deepseek-flash"
+    # الكوديك بقى ثابت H.264 بكرت الشاشة (مفيش اختيار في الواجهة)
+    defaults["codec"] = "h264_nvenc"
     return defaults
 
 
@@ -2619,7 +2621,7 @@ def _make_720_from_burned(files):
             dst_name = name.replace("1080p", "720p") if "1080p" in name else src.stem + "_720p" + src.suffix
             dst = src.with_name(dst_name)
             ok = False
-            for venc in (["-c:v", "hevc_nvenc", "-preset", "p6", "-cq", "27", "-pix_fmt", "p010le"], ["-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p"]):
+            for venc in (["-c:v", "h264_nvenc", "-preset", "p6", "-cq", "23", "-pix_fmt", "yuv420p"], ["-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p"]):
                 r = _sp.run([ff, "-y", "-i", str(src), "-vf", "scale=-2:720", *venc, "-c:a", "copy", "-movflags", "+faststart", str(dst)], capture_output=True, text=True)
                 if r.returncode == 0 and dst.is_file() and dst.stat().st_size > 0:
                     ok = True
@@ -2757,7 +2759,7 @@ def _build_clear_flow(cfg):
             key = gr.Textbox(value=cfg["api_key"], label="API Key", type="password")
             model = gr.Textbox(value=cfg["llm_model"], label="الموديل")
             base = gr.Textbox(value=cfg["base_url"], label="Base URL")
-            codec = gr.Dropdown([("HEVC كرت الشاشة", "hevc_nvenc"), ("H.264 كرت الشاشة", "h264_nvenc"), ("HEVC معالج", "libx265"), ("AV1 كرت الشاشة", "av1_nvenc")], value=cfg["codec"], label="كوديك الإخراج")
+            codec = gr.State("h264_nvenc")  # الكوديك ثابت: H.264 بكرت الشاشة
             concurrency = gr.State(1)  # حلقة واحدة في المرة
             logo_position = gr.Dropdown([("أعلى اليمين","top-right"),("أعلى الشمال","top-left"),("أسفل اليمين","bottom-right"),("أسفل الشمال","bottom-left")],value=cfg.get("logo_position","top-right"),label="مكان اللوجو")
             rclone_conf_box = gr.Textbox(label="كونفج rclone (Google Drive): الصق الكتلة كلها هنا", lines=6, placeholder="[gdrive]\ntype = drive\nscope = drive\ntoken = {...}")

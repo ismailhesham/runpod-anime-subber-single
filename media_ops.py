@@ -946,10 +946,14 @@ def burn_episode(
     if free < Path(video_path).stat().st_size * 4:
         log("⚠️ مساحة العمل قليلة بالنسبة لحجم المصدر. الحرق عالي الجودة ممكن يكبر الحجم؛ التقدير مش ضمان.")
     target_kbps = 0
+    src_size = 0
     try:
         src_size = Path(video_path).stat().st_size
         vw, vh, _, src_dur = probe_video_info(video_path)
         target_kbps = compute_auto_target_kbps(src_size, src_dur, vw, vh)
+        if target_kbps and codec == "h264_nvenc":
+            # H.264 أقل كفاءة من HEVC: نزود المستهدف 25% عشان نحافظ على الجودة (الحجم يفضل ~1.1-1.2 من الأصل)
+            target_kbps = int(target_kbps * 1.25)
     except Exception:
         target_kbps = 0
     if target_kbps:
@@ -967,6 +971,11 @@ def burn_episode(
             raise RuntimeError("فحص الملف المحروق فشل؛ الملف المؤقت محفوظ: " + str(burn_tmp))
         os.replace(burn_tmp, burn)
         os.replace(burn, out)
+        try:
+            if src_size > 0 and out.stat().st_size > src_size * 1.30:
+                log(f"⚠️ الملف الناتج ({out.stat().st_size // (1024*1024)}MB) عدّى 130% من حجم الأصل ({src_size // (1024*1024)}MB). لو ده اتكرر بلّغ المطور.")
+        except Exception:
+            pass
         if progress_cb:
             progress_cb(100, "اكتمل الحرق", out.name)
         return str(out)
