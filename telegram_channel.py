@@ -26,6 +26,7 @@ try:
         PasswordHashInvalidError,
         PhoneCodeExpiredError,
         PhoneCodeInvalidError,
+        PhoneNumberBannedError,
         PhoneNumberInvalidError,
         SessionPasswordNeededError,
     )
@@ -231,7 +232,19 @@ def ui_send_code(api_id: str, api_hash: str, phone: str) -> str:
         sent = await c.send_code_request(phone_s)
         _pending_hash = sent.phone_code_hash
         _pending_phone = phone_s
-        return "📨 الكود اتبعت على تيليجرام (هتلاقيه في الشات المحفوظ/رسائل تيليجرام الرسمية). اكتبه في خانة الكود ودوس «تسجيل الدخول»."
+        # تيليجرام بيبعت الكود إما داخل التطبيق نفسه (الشات الرسمي «Telegram») أو SMS — وضّح للمستخدم فين يدور
+        tname = type(sent.type).__name__
+        if "App" in tname:
+            where = "داخل تطبيق تيليجرام نفسه: افتح الشات الرسمي «Telegram» (عليه علامة صح زرقا) في أي جهاز مسجل عليه حسابك — مش SMS"
+        elif "Sms" in tname:
+            where = "SMS على رقمك"
+        elif "Call" in tname:
+            where = "مكالمة صوتية على رقمك"
+        else:
+            where = f"({tname})"
+        return (f"📨 الكود اتبعت: {where}. اكتبه في خانة الكود ودوس «تسجيل الدخول». "
+                "لو مفيش حاجة وصلت: متطلبش كود ورا كود (تيليجرام بيعاقب بانتظار إجباري)، "
+                "واتأكد إنك بتبص في الشات الرسمي مش في الرسايل العادية.")
 
     try:
         return _get_runner().run(_go(), timeout=90)
@@ -239,6 +252,8 @@ def ui_send_code(api_id: str, api_hash: str, phone: str) -> str:
         return f"⏳ تيليجرام طلب انتظار {e.seconds} ثانية قبل طلب كود تاني (محاولات كتير). استنى وجرب."
     except PhoneNumberInvalidError:
         return "⚠️ رقم التليفون غلط. اكتبه بالصيغة الدولية زي +201012345678."
+    except PhoneNumberBannedError:
+        return "⚠️ الرقم ده محظور من تيليجرام نفسها (مش من الأداة) — مش هينفع يتسجل بيه."
     except ApiIdInvalidError:
         return "⚠️ API ID / API Hash غلط. اتأكد إنك ناسخهم صح من my.telegram.org."
     except Exception as e:

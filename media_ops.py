@@ -869,17 +869,15 @@ def burn_and_compress_native(
 
 
 
-def burn_then_optional_compress(
+def burn_episode(
     video_path: str, ass_path: str, output_path: str, fonts_dir: str,
-    codec: str = "h264_nvenc", cq: int = 23, preset: str = "p6",
+    codec: str = "h264_nvenc", preset: str = "p6",
     x265_preset: str = "slow", audio_bitrate: str = "160k",
     logo_path: str = "", logo_position: str = "top-right",
     logo_opacity: float = 0.30, logo_scale: float = 0.12,
-    log_cb=None, progress_cb=None, compress_after: bool = False,
+    log_cb=None, progress_cb=None,
 ) -> str:
-    """Always burn first at quality 16; optionally encode a separate smaller delivery.
-    A good burn is never removed until the compressed delivery passes QC.
-    """
+    """حرق الترجمة واللوجو بجودة 16 — الملف المحروق هو الناتج النهائي (مفيش مرحلة ضغط منفصلة)."""
     if not ass_path or not Path(ass_path).is_file():
         raise ValueError("ملف الترجمة مطلوب لمرحلة الحرق الأساسية.")
     out = Path(output_path)
@@ -887,7 +885,6 @@ def burn_then_optional_compress(
     token = str(time.time_ns())
     burn = out.with_name(out.stem + ".burned." + token + ".mp4")
     burn_tmp = out.with_name(out.stem + ".burning." + token + ".mp4")
-    compressed = out.with_name(out.stem + ".compressing." + token + ".mp4")
     def log(message):
         if log_cb:
             log_cb(message)
@@ -899,44 +896,26 @@ def burn_then_optional_compress(
     free = shutil.disk_usage(out.parent).free
     if free < 256 * 1024 * 1024:
         raise OSError("المساحة أقل من 256MB. فضّي مساحة قبل الحرق.")
-    if free < Path(video_path).stat().st_size * (6 if compress_after else 4):
-        log("⚠️ مساحة العمل قليلة بالنسبة لحجم المصدر. الحرق عالي الجودة ممكن يكبر، والضغط يحتاج وجود الملفين معًا؛ التقدير مش ضمان.")
-    log("🔥 BURN · حرق الترجمة واللوجو أولًا، جودة 16. مفيش تصغير حجم مستهدف في المرحلة دي.")
+    if free < Path(video_path).stat().st_size * 4:
+        log("⚠️ مساحة العمل قليلة بالنسبة لحجم المصدر. الحرق عالي الجودة ممكن يكبر الحجم؛ التقدير مش ضمان.")
+    log("🔥 BURN · حرق الترجمة واللوجو، جودة 16. الملف المحروق هو الناتج النهائي.")
     try:
         burn_and_compress_native(video_path, ass_path, str(burn_tmp), fonts_dir,
             codec=codec, cq=16, preset=preset, x265_preset=x265_preset,
             audio_bitrate="copy", logo_path=logo_path, logo_position=logo_position,
             logo_opacity=logo_opacity, logo_scale=logo_scale, log_cb=log_cb,
-            progress_cb=progress("BURN · الحرق", 0, 0.5 if compress_after else 0.95))
+            progress_cb=progress("BURN · الحرق", 0, 0.95))
         report = qc_burned_episode(video_path, str(burn_tmp), log_cb=log_cb)
         if not report.get("ok"):
             raise RuntimeError("فحص الملف المحروق فشل؛ الملف المؤقت محفوظ: " + str(burn_tmp))
         os.replace(burn_tmp, burn)
-        if not compress_after:
-            log("⏭️ SKIP COMPRESSION · الضغط متوقف للحلقة. الملف المحروق هو الناتج النهائي.")
-            os.replace(burn, out)
-        else:
-            log("📦 COMPRESS · ضغط منفصل للملف المحروق، بدون حرق الترجمة أو اللوجو مرة تانية.")
-            if shutil.disk_usage(out.parent).free < max(burn.stat().st_size, 256 * 1024 * 1024):
-                raise OSError("مساحة الضغط غير كافية. الملف المحروق محفوظ: " + str(burn))
-            burn_and_compress_native(str(burn), "", str(compressed), fonts_dir,
-                codec=codec, cq=int(cq), preset=preset, x265_preset=x265_preset,
-                audio_bitrate=audio_bitrate, logo_path="", log_cb=log_cb,
-                progress_cb=progress("COMPRESS · الضغط", 50, 0.45))
-            report = qc_burned_episode(str(burn), str(compressed), log_cb=log_cb)
-            if not report.get("ok"):
-                raise RuntimeError("فحص النسخة المضغوطة فشل.")
-            os.replace(compressed, out)
-            burn.unlink()
+        os.replace(burn, out)
         if progress_cb:
-            progress_cb(100, "اكتمل الحرق" + (" والضغط المنفصل" if compress_after else " بدون ضغط إضافي"), out.name)
+            progress_cb(100, "اكتمل الحرق", out.name)
         return str(out)
-    except BaseException as exc:
+    except BaseException:
         if burn.exists():
             log("⚠️ الملف المحروق السليم محفوظ للاسترجاع: " + str(burn))
-        # Never promote a failed/partial compression to the final output.
-        if compressed.exists():
-            compressed.unlink()
         raise
 
 
