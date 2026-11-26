@@ -45,7 +45,6 @@ from media_ops import (
     upload_to_doodstream,
     upload_to_rclone,
 )
-import nyaa_ops
 from subtitles_ai import (
     _glossary_dir,
     _glossary_slug,
@@ -2686,23 +2685,6 @@ def _build_clear_flow(cfg):
         link_1080 = gr.Textbox(label="رابط الحلقة (Magnet / رابط مباشر / مسار ملف)", placeholder="magnet:?xt=... أو رابط مباشر أو مسار ملف")
         link_720 = gr.State("")
         source = gr.State("")
-        with gr.Accordion("🔎 بحث Nyaa جوه الأداة + المفضلة", open=False):
-            nyaa_q = gr.Textbox(label="بحث Nyaa", placeholder="مثال: Sousou no Frieren 28 1080p")
-            nyaa_go = gr.Button("ابحث", size="sm")
-            nyaa_pick = gr.Dropdown(label="النتائج (مرتبة بالسيدرز)", choices=[], interactive=True)
-            nyaa_load = gr.Button("حمّل النتيجة المختارة — بتملي الرابط واسم الأنمي", size="sm", variant="secondary")
-            nyaa_note = gr.Markdown("النتايج اللي عليها ⚠️ موسم كامل متخصصهاش هنا — دي أداة الحلقة الواحدة.")
-            nyaa_state = gr.State([])
-            gr.Markdown("**المفضلة (Watchlist)**")
-            watch_state = gr.State(nyaa_ops.load_watchlist())
-            watch_pick = gr.CheckboxGroup(label="أنميات بتتابعها", choices=nyaa_ops.load_watchlist(), value=[])
-            with gr.Row():
-                watch_add = gr.Button("＋ أضف الأنمي الحالي", size="sm")
-                watch_del = gr.Button("🗑 احذف المعلّم", size="sm")
-                watch_check = gr.Button("🔎 فحص الجديد", size="sm")
-            watch_results = gr.Dropdown(label="حلقات آخر ٢٤ ساعة", choices=[], interactive=True)
-            watch_found = gr.State([])
-            watch_load = gr.Button("حمّل الحلقة المختارة — بتملي الرابط واسم الأنمي", size="sm", variant="secondary")
         local_file = gr.File(label="أو ارفع فيديو / ملف تورنت (بدل الرابط)", type="filepath", file_types=[".mp4", ".mkv", ".torrent", ".webm"], elem_classes=["ippo-drop","ippo-drop-vid"])
         picks = gr.State([])
         download = gr.Button("حمّل وتحقق من الحلقة", variant="primary")
@@ -2892,72 +2874,6 @@ def _build_clear_flow(cfg):
         except Exception as exc:
             yield [], {}, gr.update(interactive=False), "❌ " + str(exc), gr.update(interactive=True)
         return
-    def _nyaa_fmt(r):
-        warn = " ⚠️ موسم كامل" if r.get("is_batch") else ""
-        return f"[{r['team']}] {r['title']} · {r['size_h']} · 🌱 {r['seeders']}{warn}"
-
-    def _fill_from_nyaa(r):
-        guess, saved_match = nyaa_ops.guess_series_from_title(r["title"], list_saved_series())
-        if saved_match:
-            return (r["download"], gr.update(value=saved_match), gr.skip(),
-                    "✓ الرابط اتملى، واسم الأنمي اتطابق مع المحفوظ: " + str(saved_match))
-        return (r["download"], gr.skip(), gr.update(value=guess or "", visible=True),
-                "✍️ الاسم اتملّى أوتوماتيك من عنوان التورنت — راجعه قبل التحميل." + (" ⚠️ النتيجة دي موسم كامل!" if r.get("is_batch") else ""))
-
-    def nyaa_search_ui(q):
-        try:
-            res = nyaa_ops.nyaa_search(q)
-        except Exception as exc:
-            return gr.update(choices=[], value=None), [], "❌ بحث Nyaa فشل: " + str(exc)
-        choices = [(_nyaa_fmt(r), str(i)) for i, r in enumerate(res)]
-        return (gr.update(choices=choices, value=("0" if res else None)), res,
-                ("✓ " + str(len(res)) + " نتيجة مرتبة بالسيدرز.") if res else "مفيش نتائج.")
-
-    def nyaa_load_ui(idx, res):
-        if not res or idx is None or str(idx).strip() == "":
-            return gr.skip(), gr.skip(), gr.skip(), "اختار نتيجة من القايمة الأول."
-        return _fill_from_nyaa(res[int(idx)])
-
-    def watch_add_ui(anime, pick, wl):
-        name = (anime or "").strip() if pick == SERIES_NEW_OPT else (pick or "").strip()
-        wl = list(wl or [])
-        if name and name not in wl:
-            wl.append(name)
-            try:
-                nyaa_ops.save_watchlist(wl)
-            except Exception as exc:
-                return wl, gr.update(choices=wl), "⚠️ اتضاف محلياً بس: " + str(exc)
-            return wl, gr.update(choices=wl), "✓ " + name + " اتضاف للمفضلة."
-        return wl, gr.update(choices=wl), "الاسم موجود أصلاً أو فاضي."
-
-    def watch_del_ui(selected, wl):
-        wl = [x for x in (wl or []) if x not in (selected or [])]
-        try:
-            nyaa_ops.save_watchlist(wl)
-        except Exception:
-            pass
-        return wl, gr.update(choices=wl, value=[]), "✓ المفضلة اتحدثت."
-
-    def watch_check_ui(wl):
-        try:
-            found = nyaa_ops.check_new_today(wl or [])
-        except Exception as exc:
-            return gr.update(choices=[], value=None), [], "❌ فحص الجديد فشل: " + str(exc)
-        choices = [(r["series"] + ": " + _nyaa_fmt(r), str(i)) for i, r in enumerate(found)]
-        return (gr.update(choices=choices, value=("0" if found else None)), found,
-                ("✓ " + str(len(found)) + " حلقة جديدة في آخر ٢٤ ساعة.") if found else "مفيش حلقات جديدة في آخر ٢٤ ساعة.")
-
-    def watch_load_ui(idx, found):
-        if not found or idx is None or str(idx).strip() == "":
-            return gr.skip(), gr.skip(), gr.skip(), "اختار حلقة من القايمة الأول."
-        return _fill_from_nyaa(found[int(idx)])
-
-    nyaa_go.click(nyaa_search_ui, [nyaa_q], [nyaa_pick, nyaa_state, nyaa_note])
-    nyaa_load.click(nyaa_load_ui, [nyaa_pick, nyaa_state], [link_1080, series_picker, series, nyaa_note])
-    watch_add.click(watch_add_ui, [series, series_picker, watch_state], [watch_state, watch_pick, nyaa_note])
-    watch_del.click(watch_del_ui, [watch_pick, watch_state], [watch_state, watch_pick, nyaa_note])
-    watch_check.click(watch_check_ui, [watch_state], [watch_results, watch_found, nyaa_note])
-    watch_load.click(watch_load_ui, [watch_results, watch_found], [link_1080, series_picker, series, nyaa_note])
     download.click(download_source,[source,link_1080,link_720,picks,file_map,series,local_file,series_picker],[manifest,choices,next_button,status,download])
     def next_step(items):
         return _wizard_next(items)

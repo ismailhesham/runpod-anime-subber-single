@@ -15,17 +15,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".webm", ".m4v", ".ts"}
 
-NYAA_VIEW_RE = re.compile(r"^https?://(?:www\.)?nyaa\.si/view/(\d+)", re.IGNORECASE)
 _BATCH_RE = re.compile(r"(?i)\b(batch|season|complete|collection)\b|\b\d{2}\s*[-~–—]\s*\d{2}\b")
 BATCH_SIZE_LIMIT_BYTES = 4 * 1024**3  # 4 GiB
-
-
-def normalize_nyaa_link(link: str) -> str:
-    """nyaa.si/view/<id> → nyaa.si/download/<id>.torrent (تحميل فوري بدون انتظار metadata)."""
-    m = NYAA_VIEW_RE.match((link or "").strip())
-    if m:
-        return f"https://nyaa.si/download/{m.group(1)}.torrent"
-    return (link or "").strip()
 
 
 def is_batch_torrent(title: str, size_bytes: Optional[int] = None) -> bool:
@@ -196,13 +187,6 @@ def download_torrent_or_url(
     if not target:
         raise ValueError("لم يتم إدخال رابط أو اختيار حلقة محفوظة.")
 
-    if not os.path.isfile(target):
-        normalized = normalize_nyaa_link(target)
-        if normalized != target:
-            if log_cb:
-                log_cb("🔗 رابط صفحة Nyaa اتوجّه لملف .torrent مباشرة — التحميل هيبدأ فوراً.")
-            target = normalized
-
     _run_aria2(target, output_dir, log_cb=log_cb, progress_cb=progress_cb)
 
     videos = sorted(
@@ -285,10 +269,6 @@ def list_torrent_files(
             link = (source_link or "").strip()
             if not link:
                 raise ValueError("لم يتم إدخال رابط تورنت.")
-            normalized = normalize_nyaa_link(link)
-            if normalized != link and log_cb:
-                log_cb("🔗 رابط صفحة Nyaa اتوجّه لملف .torrent مباشرة.")
-            link = normalized
             if os.path.isfile(link) and Path(link).suffix.lower() == ".torrent":
                 target_path = link
             elif link.lower().startswith("magnet:"):
