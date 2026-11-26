@@ -36,6 +36,14 @@ REQUIRED_FONT_FILES = [
     "Hayah.otf",
     "Loving Stay.otf",
     "Sovba_Regular.otf",
+    # ستايل Celestial الجديد (Ao Ashi S2)
+    "Apercu Arabic Pro Medium.otf",
+    "Bahij Tanseek Pro Bold.ttf",
+    "Bahij TheSansArabic-Bold.ttf",
+    "Bahij Yekan Bold.TTF",
+    "Bahij_Greta_Arabic-Regular.ttf",
+    "Mikadan.ttf",
+    "arialbd.ttf",
 ]
 
 

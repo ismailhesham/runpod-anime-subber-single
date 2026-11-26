@@ -79,7 +79,7 @@ REAL_FAMILY_ALIAS = {
     "FF Dusha": "FF Dusha Arabic",
 }
 
-STYLE_PROFILE_VERSION = 3
+STYLE_PROFILE_VERSION = 4
 
 DEFAULT_CELESTIAL_PROFILE = {
     "profile_version": STYLE_PROFILE_VERSION,
@@ -150,20 +150,21 @@ DEFAULT_CELESTIAL_PROFILE = {
             },
             "bleach_style": {
                 "layout_res_ratio": None,
-                "blur_edge_h_ratio": 0.002778,
+                "blur_edge_h_ratio": 0.0,
                 "collision_mode": "inline_an8",
                 "main_style_name": "Main",
                 "top_style_name": "Top",
                 "event_margin_v_overrides_h_pct": {},
                 "styles": {
-                    "Main": {"font": "Bahij Nassim", "fs_h": 10.2778, "out_h": 0.2346, "shd_h": 0.1852, "mv_h": 2.7778, "ml_w": 0.0, "mr_w": 0.0, "sx": 95, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00313131", "back_c": "&HC0636363"},
-                    "Top": {"font": "Bahij Nassim", "fs_h": 10.2778, "out_h": 0.2346, "shd_h": 0.1852, "mv_h": 2.7778, "ml_w": 0.0, "mr_w": 0.0, "sx": 95, "sy": 100, "an": 8, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00313131", "back_c": "&HC0636363"},
+                    "Main": {"font": "Bahij Nassim", "fs_h": 9.7222, "out_h": 0.2778, "shd_h": 0.0185, "mv_h": 3.2407, "ml_w": 1.0417, "mr_w": 1.0417, "sx": 95, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H0F000000", "back_c": "&H00000000"},
+                    "Top": {"font": "Bahij Nassim", "fs_h": 9.7222, "out_h": 0.2778, "shd_h": 0.0185, "mv_h": 3.2407, "ml_w": 1.0417, "mr_w": 1.0417, "sx": 95, "sy": 100, "an": 8, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H0F000000", "back_c": "&H00000000"},
+                    "Main (Blue)": {"font": "Bahij Nassim", "fs_h": 9.7222, "out_h": 0.2778, "shd_h": 0.0185, "mv_h": 3.2407, "ml_w": 1.0417, "mr_w": 1.0417, "sx": 95, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H0F7F2F14", "back_c": "&H007F2F14"},
                     "Narrator": {"font": "AlHurraTxtreg", "fs_h": 10.1852, "out_h": 0.2346, "shd_h": 0.1481, "mv_h": 2.7778, "ml_w": 10.3125, "mr_w": 10.3125, "sx": 95, "sy": 100, "an": 2, "bold": -1, "pri": "&H00E7FCFF", "out_c": "&H001A3F5A", "back_c": "&H641A3F5A"},
                     "Narrator - Top": {"font": "AlHurraTxtreg", "fs_h": 10.1852, "out_h": 0.2346, "shd_h": 0.1481, "mv_h": 2.7778, "ml_w": 10.3125, "mr_w": 10.3125, "sx": 95, "sy": 100, "an": 8, "bold": -1, "pri": "&H00E7FCFF", "out_c": "&H001A3F5A", "back_c": "&H641A3F5A"},
-                    "Note": {"font": "Bahij Nassim", "fs_h": 6.9444, "out_h": 0.1389, "shd_h": 0.0, "mv_h": 1.3889, "ml_w": 0.7812, "mr_w": 0.7812, "sx": 100, "sy": 100, "an": 8, "bold": 0, "pri": "&H00E3F7F9", "out_c": "&HD3000000", "back_c": "&H00000000"},
-                    "Signs": {"font": "SC_REHAN", "fs_h": 7.4074, "out_h": 0.0, "shd_h": 0.0, "mv_h": 5.5556, "ml_w": 1.5625, "mr_w": 1.5625, "sx": 100, "sy": 100, "an": 2, "bold": -1, "pri": "&H00E5E5E3", "out_c": "&H00959596", "back_c": "&H00000000"},
+                    "Note": {"font": "Bahij Nassim", "fs_h": 6.9444, "out_h": 0.3704, "shd_h": 0.0, "mv_h": 1.8519, "ml_w": 0.0, "mr_w": 0.0, "sx": 100, "sy": 100, "an": 8, "bold": 0, "pri": "&H00FFFFFF", "out_c": "&H58494949", "back_c": "&H64101010"},
+                    "Signs": {"font": "Arial", "fs_h": 4.6296, "out_h": 0.0, "shd_h": 0.0, "mv_h": 0.0, "ml_w": 0.0, "mr_w": 0.0, "sx": 100, "sy": 100, "an": 5, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00000000", "back_c": "&H00000000"},
                     "Attack": {"font": "Bahij SultanNahia", "fs_h": 12.037, "out_h": 0.2469, "shd_h": 0.0247, "mv_h": 1.3889, "ml_w": 0.6771, "mr_w": 0.6771, "sx": 100, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H32000000", "back_c": "&HB4F2FFFD"},
-                    "Rights": {"font": "Hayah", "fs_h": 7.4074, "out_h": 0.0926, "shd_h": 0.0, "mv_h": 1.8519, "ml_w": 1.0417, "mr_w": 1.0417, "sx": 100, "sy": 100, "an": 9, "bold": 0, "pri": "&H00FFFFFF", "out_c": "&H00000000", "back_c": "&H00322F2A"},
+                    "Rights": {"font": "Bahij Tanseek Pro", "fs_h": 6.4815, "out_h": 0.3704, "shd_h": 0.0, "mv_h": 1.8519, "ml_w": 1.0417, "mr_w": 1.0417, "sx": 100, "sy": 100, "an": 9, "bold": -1, "pri": "&H00FFF8F7", "out_c": "&H00260ABC", "back_c": "&H00322F2A"},
                     "OP-Ara": {"font": "SC_REHAN", "fs_h": 8.3333, "out_h": 0.2037, "shd_h": 0.0, "mv_h": 1.8519, "ml_w": 0.0, "mr_w": 0.0, "sx": 100, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00000000", "back_c": "&H7F404040"},
                     "OP-Rom": {"font": "Berylium", "fs_h": 8.3333, "out_h": 0.2037, "shd_h": 0.0, "mv_h": 0.9259, "ml_w": 1.5625, "mr_w": 1.5625, "sx": 100, "sy": 100, "an": 8, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00000000", "back_c": "&H7F404040"},
                     "ED-Ara": {"font": "Arabetics Harfi Regular", "fs_h": 8.7963, "out_h": 0.2037, "shd_h": 0.0, "mv_h": 1.8519, "ml_w": 0.0, "mr_w": 0.0, "sx": 100, "sy": 100, "an": 2, "bold": -1, "pri": "&H00FFFFFF", "out_c": "&H00000000", "back_c": "&H7F404040"},
@@ -512,6 +513,10 @@ def _classify_style(orig_style: str, orig_actor: str, raw_text: str) -> Tuple[st
         return "Attack", False
     if any(k in s for k in ("sign", "title", "caption", "screen", "board")) or "sign" in a or "\\pos(" in raw_text or "\\move(" in raw_text:
         return "Signs", False
+    if "right" in s or "credit" in s:
+        return "Rights", False
+    if "blue" in s:
+        return "Main (Blue)", False
     if "top" in s or "overlap" in s or "\\an8" in raw_text:
         return "Top", False
     return "Main", False
@@ -1298,7 +1303,7 @@ def write_responsive_ass(
             if (
                 wrap_mode == "sequential"
                 and not entry.keep_untranslated
-                and entry.target_style in ("Main", "Top", "Narrator", "Narrator - Top")
+                and entry.target_style in ("Main", "Top", "Main (Blue)", "Narrator", "Narrator - Top")
                 and (entry.end_ms - entry.start_ms) >= 1700
             ):
                 _cand = _enforce_celestial_punctuation(
@@ -1349,11 +1354,11 @@ def write_responsive_ass(
             )
             blur_px = max(1.0, round(target_h * 0.0018, 1))
             bord_px = max(1.0, round(target_h * 0.0015, 1))
-            # المترجم يستخدم SC_REHAN لكل اللافتات (بدون إطار)؛ AFSANEH لعناوين الحلقات فقط
+            # اللافتات في الستايل الجديد بخط Arial (بدون إطار)؛ AFSANEH لعناوين الحلقات فقط
             if "title" in entry.actor.lower() or "episode" in entry.actor.lower():
                 f_tag = f"\\fnAFSANEH_v2 KHWF\\blur{blur_px}"
             else:
-                f_tag = f"\\fn{_safe_font('SC_REHAN')}\\blur{blur_px}"
+                f_tag = f"\\fn{_safe_font('Arial')}\\blur{blur_px}"
             formatted = f"{{{f_tag}{scaled_tags}}}{final_text}"
         else:
             formatted = final_text
