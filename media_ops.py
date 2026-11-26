@@ -641,6 +641,21 @@ def extract_card_frame(video_path: str, frac: float = 0.5, width: int = 480) -> 
     return ""
 
 
+def compute_auto_target_kbps(size_bytes: int, duration_s: float, width: int, height: int) -> int:
+    """معدل الفيديو المستهدف (kbps) عشان الناتج يطلع قريب من حجم الأصلي.
+
+    الفيديو ≈ 90% من معدل الأصلي الإجمالي (الباقي صوت بيتنسخ زي ما هو من غير إعادة تشفير)،
+    بحد أدنى متدرج مع الدقة عشان المصدر الضعيف أصلاً ميبوظش. 0 = مفيش كفاية بيانات (استخدم الجودة الثابتة).
+    """
+    if duration_s <= 0 or size_bytes <= 0:
+        return 0
+    total_bps = size_bytes * 8 / duration_s
+    video_bps = total_bps * 0.90
+    pixels = (width or 1920) * (height or 1080)
+    floor_bps = 1_200_000 * pixels / (1920 * 1080)
+    return max(int(video_bps // 1000), int(floor_bps // 1000))
+
+
 def burn_and_compress_native(
     video_path: str,
     ass_path: str,
@@ -651,6 +666,7 @@ def burn_and_compress_native(
     preset: str = "p6",
     x265_preset: str = "slow",
     audio_bitrate: str = "160k",
+    target_kbps: int = 0,
     logo_path: str = "",
     logo_position: str = "top-right",
     logo_opacity: float = 0.30,
@@ -695,12 +711,23 @@ def burn_and_compress_native(
     def _build_v_args(eng: str) -> List[str]:
         if eng.endswith("_nvenc"):
             hevc10 = eng == "hevc_nvenc"
-            v = [
-                "-c:v", eng, "-preset", preset, "-rc", "vbr",
-                "-cq", str(cq), "-b:v", "0",
-                "-spatial-aq", "1", "-temporal-aq", "1",
-                "-pix_fmt", "p010le" if hevc10 else "yuv420p",
-            ]
+            if target_kbps:
+                # حجم تلقائي قريب من الأصلي: معدل متوسط + سقف مرن + حارس جودة
+                v = [
+                    "-c:v", eng, "-preset", preset, "-rc", "vbr",
+                    "-cq", "24", "-b:v", f"{target_kbps}k",
+                    "-maxrate", f"{int(target_kbps * 1.6)}k",
+                    "-bufsize", f"{target_kbps * 2}k",
+                    "-spatial-aq", "1", "-temporal-aq", "1",
+                    "-pix_fmt", "p010le" if hevc10 else "yuv420p",
+                ]
+            else:
+                v = [
+                    "-c:v", eng, "-preset", preset, "-rc", "vbr",
+                    "-cq", str(cq), "-b:v", "0",
+                    "-spatial-aq", "1", "-temporal-aq", "1",
+                    "-pix_fmt", "p010le" if hevc10 else "yuv420p",
+                ]
             caps = _nvenc_opts(eng)
             if "-multipass" in caps:
                 v += ["-multipass", "fullres"]  # better quality at the same size
@@ -715,8 +742,20 @@ def burn_and_compress_native(
             return v
         if eng == "libx265":
             # بلا أي كاب على الأنظمة: x265 بيبني pool بكل أنوية المعالج تلقائياً
-            return ["-c:v", "libx265", "-preset", x265_preset, "-crf", str(cq), "-pix_fmt", "yuv420p",
-                    "-x265-params", "aq-mode=3", "-tag:v", "hvc1"]
+            base = ["-c:v", "libx265", "-preset", x265_preset, "-pix_fmt", "yuv420p"]
+            if target_kbps:
+                base += ["-b:v", f"{target_kbps}k",
+                         "-maxrate", f"{int(target_kbps * 1.6)}k",
+                         "-bufsize", f"{target_kbps * 2}k"]
+            else:
+                base += ["-crf", str(cq)]
+            return base + ["-x265-params", "aq-mode=3", "-tag:v", "hvc1"]
+        if target_kbps:
+            return ["-c:v", "libx264", "-preset", "medium",
+                    "-b:v", f"{target_kbps}k",
+                    "-maxrate", f"{int(target_kbps * 1.6)}k",
+                    "-bufsize", f"{target_kbps * 2}k",
+                    "-pix_fmt", "yuv420p"]
         return ["-c:v", "libx264", "-preset", "medium", "-crf", str(cq), "-pix_fmt", "yuv420p"]
 
     # سلسلة البدائل: المحرك المطلوب أولاً، ثم h264 على الكرت، ثم المعالج.
@@ -877,7 +916,7 @@ def burn_episode(
     logo_opacity: float = 0.30, logo_scale: float = 0.12,
     log_cb=None, progress_cb=None,
 ) -> str:
-    """حرق الترجمة واللوجو بجودة 16 — الملف المحروق هو الناتج النهائي (مفيش مرحلة ضغط منفصلة)."""
+    """حرق الترجمة واللوجو بحجم تلقائي قريب من الأصلي — الملف المحروق هو الناتج النهائي (مفيش مرحلة ضغط منفصلة)."""
     if not ass_path or not Path(ass_path).is_file():
         raise ValueError("ملف الترجمة مطلوب لمرحلة الحرق الأساسية.")
     out = Path(output_path)
@@ -898,11 +937,21 @@ def burn_episode(
         raise OSError("المساحة أقل من 256MB. فضّي مساحة قبل الحرق.")
     if free < Path(video_path).stat().st_size * 4:
         log("⚠️ مساحة العمل قليلة بالنسبة لحجم المصدر. الحرق عالي الجودة ممكن يكبر الحجم؛ التقدير مش ضمان.")
-    log("🔥 BURN · حرق الترجمة واللوجو، جودة 16. الملف المحروق هو الناتج النهائي.")
+    target_kbps = 0
+    try:
+        src_size = Path(video_path).stat().st_size
+        vw, vh, _, src_dur = probe_video_info(video_path)
+        target_kbps = compute_auto_target_kbps(src_size, src_dur, vw, vh)
+    except Exception:
+        target_kbps = 0
+    if target_kbps:
+        log(f"🔥 BURN · حرق الترجمة واللوجو بحجم تلقائي قريب من الأصلي: فيديو ~{target_kbps}k بت/ث.")
+    else:
+        log("🔥 BURN · حرق الترجمة واللوجو، جودة 16 (تعذر حساب معدل المصدر).")
     try:
         burn_and_compress_native(video_path, ass_path, str(burn_tmp), fonts_dir,
             codec=codec, cq=16, preset=preset, x265_preset=x265_preset,
-            audio_bitrate="copy", logo_path=logo_path, logo_position=logo_position,
+            audio_bitrate="copy", target_kbps=target_kbps, logo_path=logo_path, logo_position=logo_position,
             logo_opacity=logo_opacity, logo_scale=logo_scale, log_cb=log_cb,
             progress_cb=progress("BURN · الحرق", 0, 0.95))
         report = qc_burned_episode(video_path, str(burn_tmp), log_cb=log_cb)
