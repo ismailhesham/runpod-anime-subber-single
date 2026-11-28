@@ -503,8 +503,8 @@ def load_settings() -> Dict:
         "credit_typesetter": "",
         "credit_encoder": "",
         "logo_position": "top-right",
-        "logo_opacity": 0.30,
-        "logo_scale": 0.12,
+        "logo_opacity": 0.47,
+        "logo_scale": 0.115,
     }
     if SETTINGS_FILE.is_file():
         try:
@@ -2891,7 +2891,7 @@ def _build_clear_flow(cfg):
                 "Auto (سحب ترجمة MKV إن وجدت، وإلا Whisper)","large-v3",provider_v,key_v,model_v,base_v,
                 codec_v,cfg.get("preset","p6"),cfg.get("x265_preset","slow"),"copy",
                 cfg.get("credit_translator",""),cfg.get("credit_typesetter",""),cfg.get("credit_encoder",""),False,
-                logo_v,cfg.get("logo_opacity",0.3),cfg.get("logo_scale",0.12),False,count_v,"grid","",items,selection]
+                logo_v,cfg.get("logo_opacity",0.47),cfg.get("logo_scale",0.115),False,count_v,"grid","",items,selection]
         completed = False
         last_job = {}
         for result in step_process_episodes(*args):
